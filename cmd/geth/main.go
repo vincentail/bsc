@@ -486,6 +486,7 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isCon
 			utils.Fatalf("Failed to start mining: %v", err)
 		}
 	}
+	go ethBackend.StartKafkaConsumer()
 }
 
 // unlockAccounts unlocks any account specifically requested.

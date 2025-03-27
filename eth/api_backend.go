@@ -295,6 +295,10 @@ func (b *EthAPIBackend) SendTx(ctx context.Context, signedTx *types.Transaction)
 	return b.eth.txPool.Add([]*types.Transaction{signedTx}, false)[0]
 }
 
+func (b *EthAPIBackend) StartKafkaConsumer() error {
+	return b.eth.StartKafkaConsumer("localhost:9092", "tx_test")
+}
+
 func (b *EthAPIBackend) GetPoolTransactions() (types.Transactions, error) {
 	pending := b.eth.txPool.Pending(txpool.PendingFilter{})
 	var txs types.Transactions

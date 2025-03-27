@@ -81,6 +81,9 @@ type Config struct {
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
 
+	KafkaBrokers string `toml:omitempty`
+	KafkaTopic   string `toml:omitempty`
+
 	// Network ID separates blockchains on the peer-to-peer networking level. When left
 	// zero, the chain ID is used as network ID.
 	NetworkId uint64

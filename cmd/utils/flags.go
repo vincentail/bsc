@@ -249,6 +249,18 @@ var (
 		Value: 0,
 	}
 
+	KafkaBrokers = &cli.StringFlag{
+		Name:     "KafkaBrokers",
+		Usage:    `kafka brokers`,
+		Category: flags.EthCategory,
+	}
+
+	KafkaTopic = &cli.StringFlag{
+		Name:     "KafkaTopic",
+		Usage:    `kafka topic`,
+		Category: flags.EthCategory,
+	}
+
 	SnapshotFlag = &cli.BoolFlag{
 		Name:     "snapshot",
 		Usage:    `Enables snapshot-database mode (default = enable)`,
@@ -2131,6 +2143,10 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 			cfg.TrieCleanCache += cfg.SnapshotCache
 			cfg.SnapshotCache = 0 // Disabled
 		}
+	}
+	if ctx.IsSet(KafkaBrokers.Name) && ctx.IsSet(KafkaTopic.Name) {
+		cfg.KafkaBrokers = ctx.String(KafkaBrokers.Name)
+		cfg.KafkaTopic = ctx.String(KafkaTopic.Name)
 	}
 	if ctx.IsSet(VMEnableDebugFlag.Name) {
 		// TODO(fjl): force-enable this in --dev mode

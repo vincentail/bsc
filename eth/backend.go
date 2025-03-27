@@ -23,9 +23,11 @@ import (
 	"fmt"
 	"math/big"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/Shopify/sarama"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -79,6 +81,21 @@ const (
 // Config contains the configuration options of the ETH protocol.
 // Deprecated: use ethconfig.Config instead.
 type Config = ethconfig.Config
+
+// KafkaConfig 配置
+type KafkaConfig struct {
+	Brokers []string
+	Topic   string
+	Group   string
+}
+
+// TransactionMessage 交易消息格式
+type TransactionMessage struct {
+	From  string `json:"from"`
+	To    string `json:"to"`
+	Value string `json:"value"`
+	Data  string `json:"data"`
+}
 
 // Ethereum implements the Ethereum full node service.
 type Ethereum struct {
@@ -415,7 +432,6 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 
 	// Start the RPC service
 	eth.netRPCService = ethapi.NewNetAPI(eth.p2pServer, networkID)
-
 	// Register the backend on the node
 	stack.RegisterAPIs(eth.APIs())
 	stack.RegisterProtocols(eth.Protocols())
@@ -425,6 +441,52 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	eth.shutdownTracker.MarkStartup()
 
 	return eth, nil
+}
+
+func (b *Ethereum) StartKafkaConsumer(brokers string, topic string) error {
+	if &brokers == nil || brokers == "" {
+		log.Info("kafka not set")
+		return nil
+	}
+	consumer, err := sarama.NewConsumer(strings.Split(brokers, ","), nil)
+	if err != nil {
+		log.Error("Failed to start Kafka consumer:", "err", err)
+		return err
+	}
+	defer consumer.Close()
+
+	partitionConsumer, err := consumer.ConsumePartition(topic, 0, sarama.OffsetNewest)
+	if err != nil {
+		log.Error("Failed to consume Kafka topic:", "err", err)
+		return err
+	}
+	defer partitionConsumer.Close()
+
+	log.Info("Kafka consumer started...")
+
+	for msg := range partitionConsumer.Messages() {
+		b.processSignedTransaction(msg.Value)
+	}
+	return nil
+}
+
+// processKafkaTransaction 解析并提交交易
+func (b *Ethereum) processSignedTransaction(data []byte) {
+	var tx types.Transaction
+
+	// 解析 RLP 编码的交易数据
+	err := rlp.DecodeBytes(data, &tx)
+	if err != nil {
+		log.Error("Failed to decode signed transaction: ", "err", err)
+		return
+	}
+	err = b.txPool.Add([]*types.Transaction{&tx}, false)[0]
+	if err != nil {
+		log.Error("Failed to submit transaction: ", "err", err)
+		return
+	}
+
+	log.Info("Signed transaction submitted: %s", tx.Hash().Hex())
 }
 
 func makeExtraData(extra []byte) []byte {
