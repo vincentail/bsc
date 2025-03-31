@@ -2255,6 +2255,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 			chaindb.Close()
 		}
 		if !ctx.IsSet(MinerGasPriceFlag.Name) {
+			log.Info("miner gas price not set")
 			cfg.Miner.GasPrice = big.NewInt(1)
 		}
 	default:
