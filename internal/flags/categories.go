@@ -31,6 +31,7 @@ const (
 	APICategory          = "API AND CONSOLE"
 	NetworkingCategory   = "NETWORKING"
 	MinerCategory        = "MINER"
+	KafkaCategory        = "KAFKA"
 	GasPriceCategory     = "GAS PRICE ORACLE"
 	VMCategory           = "VIRTUAL MACHINE"
 	LoggingCategory      = "LOGGING AND DEBUGGING"

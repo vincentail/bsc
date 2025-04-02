@@ -512,3 +512,7 @@ func (b *EthAPIBackend) BestBidGasFee(parentHash common.Hash) *big.Int {
 func (b *EthAPIBackend) MinerInTurn() bool {
 	return b.Miner().InTurn()
 }
+
+func (b *EthAPIBackend) StartKafka(broker string, topic string, group string) interface{} {
+	return nil
+}

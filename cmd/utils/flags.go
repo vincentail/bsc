@@ -656,6 +656,31 @@ var (
 		Category: flags.MinerCategory,
 	}
 
+	// Kafka settings
+	KafkaEnabledFlag = &cli.BoolFlag{
+		Name:     "kafka",
+		Usage:    "Enable kafka",
+		Category: flags.KafkaCategory,
+	}
+
+	KafkaBrokerFlag = &cli.StringFlag{
+		Name:     "kafka.broker",
+		Usage:    "kafka broker",
+		Category: flags.KafkaCategory,
+	}
+
+	KafkaTopicFlag = &cli.StringFlag{
+		Name:     "kafka.topic",
+		Usage:    "kafka topic",
+		Category: flags.KafkaCategory,
+	}
+
+	KafkaGroupFlag = &cli.StringFlag{
+		Name:     "kafka.group",
+		Usage:    "kafka group",
+		Category: flags.KafkaCategory,
+	}
+
 	// Account settings
 	UnlockedAccountFlag = &cli.StringFlag{
 		Name:     "unlock",

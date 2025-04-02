@@ -343,6 +343,7 @@ func (p *TxPool) Add(txs []*types.Transaction, sync bool) []error {
 	// so we can piece back the returned errors into the original order.
 	txsets := make([][]*types.Transaction, len(p.subpools))
 	splits := make([]int, len(txs))
+	log.Info("add tx", "tx", txs)
 
 	for i, tx := range txs {
 		// Mark this transaction belonging to no-subpool

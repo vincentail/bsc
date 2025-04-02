@@ -151,6 +151,10 @@ var (
 		utils.MinerRecommitIntervalFlag,
 		utils.MinerNewPayloadTimeoutFlag, // deprecated
 		utils.MinerDelayLeftoverFlag,
+		utils.KafkaEnabledFlag,
+		utils.KafkaBrokerFlag,
+		utils.KafkaTopicFlag,
+		utils.KafkaGroupFlag,
 		// utils.MinerNewPayloadTimeout,
 		utils.NATFlag,
 		utils.NoDiscoverFlag,
@@ -337,6 +341,7 @@ func main() {
 // prepare manipulates memory cache allowance and setups metric system.
 // This function should be called before launching devp2p stack.
 func prepare(ctx *cli.Context) {
+	log.Info("****************start prepare**************")
 	// If we're running a known preset, log it for convenience.
 	switch {
 	case ctx.IsSet(utils.ChapelFlag.Name):
@@ -379,6 +384,7 @@ func geth(ctx *cli.Context) error {
 	if args := ctx.Args().Slice(); len(args) > 0 {
 		return fmt.Errorf("invalid command: %q", args[0])
 	}
+	log.Info("start command:", "args", ctx)
 
 	prepare(ctx)
 	stack, backend := makeFullNode(ctx)
@@ -484,6 +490,25 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isCon
 		ethBackend.TxPool().SetGasTip(gasprice)
 		if err := ethBackend.StartMining(); err != nil {
 			utils.Fatalf("Failed to start mining: %v", err)
+		}
+	}
+	if ctx.Bool(utils.KafkaEnabledFlag.Name) {
+		if !ok {
+			utils.Fatalf("Ethereum service not running")
+		}
+		broker := ctx.String(utils.KafkaBrokerFlag.Name)
+		topic := ctx.String(utils.KafkaTopicFlag.Name)
+		group := ctx.String(utils.KafkaGroupFlag.Name)
+		if len(broker) == 0 || len(topic) == 0 {
+			utils.Fatalf("kafka module need broker and topic")
+		} else {
+			if len(group) < 0 {
+				group = "node_default_consumer"
+			}
+			log.Info("kafka broker:", broker, "topic:", topic)
+			if err := ethBackend.StartKafka(broker, topic, group); err != nil {
+				utils.Fatalf("Failed to start kafka: %v", err)
+			}
 		}
 	}
 }

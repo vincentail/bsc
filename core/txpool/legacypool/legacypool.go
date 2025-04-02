@@ -736,6 +736,7 @@ func (pool *LegacyPool) validateAuth(tx *types.Transaction) error {
 // pending promotion and execution. If the transaction is a replacement for an already
 // pending or queued one, it overwrites the previous transaction if its price is higher.
 func (pool *LegacyPool) add(tx *types.Transaction) (replaced bool, err error) {
+	log.Info("try to add transaction", "tx", tx.Hash().String())
 	// If the transaction is already known, discard it
 	hash := tx.Hash()
 	if pool.all.Get(hash) != nil {
@@ -775,8 +776,10 @@ func (pool *LegacyPool) add(tx *types.Transaction) (replaced bool, err error) {
 			}
 		}()
 	}
+	// price不够的话丢弃
 	// If the transaction pool is full, discard underpriced transactions
 	if uint64(pool.all.Slots()+numSlots(tx)) > pool.config.GlobalSlots+pool.config.GlobalQueue {
+		log.Info("into price check logic")
 		// If the new transaction is underpriced, don't accept it
 		if pool.priced.Underpriced(tx) {
 			log.Trace("Discarding underpriced transaction", "hash", hash, "gasTipCap", tx.GasTipCap(), "gasFeeCap", tx.GasFeeCap())
@@ -806,6 +809,7 @@ func (pool *LegacyPool) add(tx *types.Transaction) (replaced bool, err error) {
 
 		// If the new transaction is a future transaction it should never churn pending transactions
 		if pool.isGapped(from, tx) {
+			log.Info("gaspped tx", "tx", tx.Nonce(), "from", from.String())
 			var replacesPending bool
 			for _, dropTx := range drop {
 				dropSender, _ := types.Sender(pool.signer, dropTx)
@@ -828,7 +832,7 @@ func (pool *LegacyPool) add(tx *types.Transaction) (replaced bool, err error) {
 
 		// Kick out the underpriced remote transactions.
 		for _, tx := range drop {
-			log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "gasTipCap", tx.GasTipCap(), "gasFeeCap", tx.GasFeeCap())
+			log.Info("Discarding freshly underpriced transaction", "hash", tx.Hash(), "gasTipCap", tx.GasTipCap(), "gasFeeCap", tx.GasFeeCap())
 			underpricedTxMeter.Mark(1)
 
 			sender, _ := types.Sender(pool.signer, tx)
@@ -855,7 +859,7 @@ func (pool *LegacyPool) add(tx *types.Transaction) (replaced bool, err error) {
 		pool.all.Add(tx)
 		pool.priced.Put(tx)
 		pool.queueTxEvent(tx)
-		log.Trace("Pooled new executable transaction", "hash", hash, "from", from, "to", tx.To())
+		log.Info("Pooled new executable transaction", "hash", hash, "from", from, "to", tx.To())
 
 		// Successful promotion, bump the heartbeat
 		pool.beats[from] = time.Now()
@@ -867,7 +871,7 @@ func (pool *LegacyPool) add(tx *types.Transaction) (replaced bool, err error) {
 		return false, err
 	}
 
-	log.Trace("Pooled new future transaction", "hash", hash, "from", from, "to", tx.To())
+	log.Info("Pooled new future transaction", "hash", hash, "from", from, "to", tx.To())
 	return replaced, nil
 }
 
@@ -876,9 +880,9 @@ func (pool *LegacyPool) addToOverflowPool(drop types.Transactions) {
 		added := pool.localBufferPool.Add(tx)
 		if added {
 			from, _ := types.Sender(pool.signer, tx)
-			log.Debug("Added to OverflowPool", "transaction", tx.Hash().String(), "from", from.String())
+			log.Info("Added to OverflowPool", "transaction", tx.Hash().String(), "from", from.String())
 		} else {
-			log.Debug("Failed to add transaction to OverflowPool", "transaction", tx.Hash().String())
+			log.Info("Failed to add transaction to OverflowPool", "transaction", tx.Hash().String())
 		}
 	}
 }
@@ -890,6 +894,7 @@ func (pool *LegacyPool) isGapped(from common.Address, tx *types.Transaction) boo
 	// transaction afterwards. Note, the tx staleness is already checked in
 	// 'validateTx' function previously.
 	next := pool.pendingNonces.get(from)
+	log.Info("tx nonce", "tx nonce", tx.Nonce(), "pending nonce", next)
 	if tx.Nonce() <= next {
 		return false
 	}
@@ -1068,6 +1073,7 @@ func (pool *LegacyPool) addTxsLocked(txs []*types.Transaction) ([]error, *accoun
 	dirty := newAccountSet(pool.signer)
 	errs := make([]error, len(txs))
 	for i, tx := range txs {
+		log.Info("addTxsLocked 111", "tx", tx.Nonce())
 		replaced, err := pool.add(tx)
 		errs[i] = err
 		if err == nil && !replaced {

@@ -309,16 +309,20 @@ func (st *stateTransition) preCheck() error {
 	if !msg.SkipNonceChecks {
 		// Make sure this transaction's nonce is correct.
 		stNonce := st.state.GetNonce(msg.From)
-		if msgNonce := msg.Nonce; stNonce < msgNonce {
+		if msgNonce := msg.Nonce; stNonce > msgNonce {
 			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooHigh,
 				msg.From.Hex(), msgNonce, stNonce)
-		} else if stNonce > msgNonce {
-			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooLow,
-				msg.From.Hex(), msgNonce, stNonce)
-		} else if stNonce+1 < stNonce {
-			return fmt.Errorf("%w: address %v, nonce: %d", ErrNonceMax,
-				msg.From.Hex(), stNonce)
 		}
+		//if msgNonce := msg.Nonce; stNonce < msgNonce {
+		//	return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooHigh,
+		//		msg.From.Hex(), msgNonce, stNonce)
+		//} else if stNonce > msgNonce {
+		//	return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooLow,
+		//		msg.From.Hex(), msgNonce, stNonce)
+		//} else if stNonce+1 < stNonce {
+		//	return fmt.Errorf("%w: address %v, nonce: %d", ErrNonceMax,
+		//		msg.From.Hex(), stNonce)
+		//}
 	}
 	if !msg.SkipFromEOACheck {
 		// Make sure the sender is an EOA
@@ -498,7 +502,8 @@ func (st *stateTransition) execute() (*ExecutionResult, error) {
 		ret, _, st.gasRemaining, vmerr = st.evm.Create(sender, msg.Data, st.gasRemaining, value)
 	} else {
 		// Increment the nonce for the next transaction.
-		st.state.SetNonce(msg.From, st.state.GetNonce(msg.From)+1, tracing.NonceChangeEoACall)
+		//st.state.SetNonce(msg.From, st.state.GetNonce(msg.From)+1, tracing.NonceChangeEoACall)
+		st.state.SetNonce(msg.From, msg.Nonce+1, tracing.NonceChangeEoACall)
 
 		// Apply EIP-7702 authorizations.
 		if msg.SetCodeAuthorizations != nil {
